@@ -1,4 +1,5 @@
 import { Product } from "src/products/entities/product.entity";
+import { Sale } from "src/sales/entities/sale.entity";
 import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 
 @Entity('users')
@@ -20,6 +21,9 @@ export class User {
 
     @OneToMany(() => Product, (product) => product.user)
     products: Product[];
+
+    @OneToMany(() => Sale, (sale) => sale.user)
+    sales: Sale[];
 
     @Column({ default: false })
     isDeleted: boolean;
