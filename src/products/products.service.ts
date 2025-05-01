@@ -12,7 +12,6 @@ import { Category } from 'src/categories/entities/category.entity';
 import { Supplier } from 'src/suppliers/entities/supplier.entity';
 import { ExpensesService } from 'src/expenses/expenses.service';
 import { CreateExpenseDto } from 'src/expenses/dto/create-expense.dto';
-import { DecrementStockDto } from './dto/decrement-stock.dto';
 
 @Injectable()
 export class ProductsService {
@@ -131,9 +130,9 @@ export class ProductsService {
     }
   }
   
-  async decrementStock( id: number, decrementStockDto: DecrementStockDto ) {
+  async decrementStock( id: number, stock: number ) {
     const product = await this.findOne( id );
-    const decrement = Number( product.stock - decrementStockDto.decrementStock );
+    const decrement = Number( product.stock - stock );
 
     try {
       await this.productRepository.update( id, { stock: decrement });

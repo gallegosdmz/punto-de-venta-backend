@@ -9,7 +9,6 @@ import { User } from 'src/users/entities/user.entity';
 import { CustomValidations } from 'src/utils/validations';
 import { handleDBErrors } from 'src/utils/errors';
 import { ProductsService } from 'src/products/products.service';
-import { GenerateDailyReportDto } from './dto/generate-daily-report.dto';
 
 @Injectable()
 export class SalesService {
@@ -46,14 +45,15 @@ export class SalesService {
         const { product, ...detail } = x;
         const productDB = await this.productsService.findOne(product);
 
+        // Decrementar stock en el producto
+        await this.productsService.decrementStock(product, detail.quantity);
+
         const saleDetail = this.saleDetailRepository.create({
             ...detail,
             sale: sale,
             product: productDB
         });
         await queryRunner.manager.save(saleDetail);
-
-        console.log(saleDetail);
       }
 
       await queryRunner.commitTransaction();
