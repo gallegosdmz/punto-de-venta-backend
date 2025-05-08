@@ -5,7 +5,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Product } from './entities/product.entity';
 import { Repository } from 'typeorm';
 import { handleDBErrors } from 'src/utils/errors';
-import { CustomValidations } from 'src/utils/validations';
+import { CustomValidator } from 'src/utils/validations';
 import { User } from 'src/users/entities/user.entity';
 import { RestockProductDto } from './dto/restock-product.dto';
 import { Category } from 'src/categories/entities/category.entity';
@@ -18,28 +18,36 @@ export class ProductsService {
   constructor(
     @InjectRepository( Product )
     private readonly productRepository: Repository<Product>,
-    private readonly customValidations: CustomValidations,
+    private readonly customValidator: CustomValidator,
     private readonly expenseService: ExpensesService,
   ) {}
   
   async create(createProductDto: CreateProductDto, user: User) {
-    const category = await this.customValidations.verifyEntityExist( Category, createProductDto.category );
-    const supplier = await this.customValidations.verifyEntityExist( Supplier, createProductDto.supplier );
+    const category = await this.customValidator.verifyEntityExist( Category, createProductDto.category );
+    const supplier = await this.customValidator.verifyEntityExist( Supplier, createProductDto.supplier );
+
+    const business = await this.customValidator.verifyOwnerBusiness(user.business.id, user);
+
+    const {expense, ...createProductDetails} = createProductDto;
 
     try {
       const product = this.productRepository.create({
-        ...createProductDto,
+        ...createProductDetails,
         category,
         user,
-        supplier
+        supplier,
+        business,
       });
       await this.productRepository.save( product );
 
-      const expense: CreateExpenseDto = {
+      const expenseData = {
         concept: `Gasto por abastecimiento de producto: ${ createProductDto.name }`,
+        expCategory: expense.expCategory,
+        method: expense.method,
         total: Number( product.purchasePrice * product.stock ),
+        business,
       }
-      await this.expenseService.create( expense );
+      await this.expenseService.create( expenseData, user );
 
       return product;
 
@@ -58,6 +66,7 @@ export class ProductsService {
           category: true,
           user: true,
           supplier: true,
+          business: true,
         },
       });
 
@@ -68,7 +77,30 @@ export class ProductsService {
     }
   }
 
-  async findOne(id: number) {
+  async findAllByBusiness(user: User) {
+    const business = await this.customValidator.verifyOwnerBusiness(user.business.id, user);
+
+    try {
+      const products = await this.productRepository.find({
+        where: {
+          isDeleted: false,
+          business,
+        },
+        relations: {
+          category: true,
+          supplier: true,
+          user: true,
+        },
+      });
+
+      return products;
+
+    } catch (error) {
+      handleDBErrors(error, 'findAllByBusiness - products');
+    }
+  }
+
+  async findOne(id: number, user: User) {
     const product = await this.productRepository.findOne({
       where: {
         id,
@@ -78,18 +110,20 @@ export class ProductsService {
         category: true,
         user: true,
         supplier: true,
+        business: true,
       },
     });
     if ( !product ) throw new NotFoundException(`Product with id: ${ id } not found`);
+    await this.customValidator.verifyOwnerBusiness(product.business.id, user)
 
     return product;
   }
 
-  async update(id: number, updateProductDto: UpdateProductDto) {
-    const product = await this.findOne( id );
+  async update(id: number, updateProductDto: UpdateProductDto, user: User) {
+    const product = await this.findOne(id, user);
     
-    const category = await this.customValidations.verifyEntityExist( Category, updateProductDto.category! );
-    const supplier = await this.customValidations.verifyEntityExist( Supplier, updateProductDto.supplier! );
+    const category = await this.customValidator.verifyEntityExist( Category, updateProductDto.category! );
+    const supplier = await this.customValidator.verifyEntityExist( Supplier, updateProductDto.supplier! );
 
     const { stock, ...res } = updateProductDto;
 
@@ -100,52 +134,59 @@ export class ProductsService {
     };
 
     try {
-      Object.assign( product, data );
-      await this.productRepository.save( product );
+      const updatedProduct = this.productRepository.create({
+        ...product,
+        ...data,
+      });
+      await this.productRepository.save( updatedProduct );
 
-      return this.findOne( id );
+      return this.findOne(id, user);
 
     } catch ( error ) {
       handleDBErrors( error, 'update - products' );
     }
   }
 
-  async restock( id: number, restockProductDto: RestockProductDto ) {
-    const product = await this.findOne( id );
+  async restock(id: number, restockProductDto: RestockProductDto, user: User) {
+    const business = await this.customValidator.verifyOwnerBusiness(user.business.id, user);
+    const product = await this.findOne(id, user);
     const restock = Number( product.stock + restockProductDto.restock );
 
     try {
       await this.productRepository.update( id, { stock: restock });
 
-      const expense: CreateExpenseDto = {
+      const expenseData = {
         concept: `Gasto por reabastecimiento de producto: ${ product.name }`,
+        expCategory: restockProductDto.expense.expCategory,
+        method: restockProductDto.expense.method,
         total: Number( product.purchasePrice * restock ),
+        business,
       }
-      await this.expenseService.create( expense );
+      await this.expenseService.create( expenseData, user );
 
-      return this.findOne( id );
+      return this.findOne(id, user);
 
     } catch ( error ) {
       handleDBErrors( error, 'restock - products' );
     }
   }
   
-  async decrementStock( id: number, stock: number ) {
-    const product = await this.findOne( id );
+  async decrementStock(id: number, stock: number, user: User) {
+    const product = await this.findOne(id, user);
     const decrement = Number( product.stock - stock );
 
     try {
       await this.productRepository.update( id, { stock: decrement });
 
-      return this.findOne( id );
+      return this.findOne(id, user);
 
     } catch ( error ) {
       handleDBErrors( error, 'decrementStoc - products' );
     }
   }
 
-  async remove(id: number) {
-    await this.findOne( id );
+  async remove(id: number, user: User) {
+    await this.findOne(id, user);
 
     try {
       await this.productRepository.update( id, { isDeleted: true } );

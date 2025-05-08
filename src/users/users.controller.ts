@@ -14,9 +14,9 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Post()
-  @Auth( ValidRoles.administrador )
-  create(@Body() createUserDto: CreateUserDto) {
-    return this.usersService.create(createUserDto);
+  @Auth(ValidRoles.administrator, ValidRoles.ceo)
+  create(@Body() createUserDto: CreateUserDto, @GetUser() user: User) {
+    return this.usersService.create(createUserDto, user);
   }
 
   @Post('login')
@@ -25,13 +25,21 @@ export class UsersController {
   }
 
   @Get()
-  @Auth( ValidRoles.administrador )
+  @Auth(ValidRoles.administrator, ValidRoles.ceo)
   findAll() {
     return this.usersService.findAll();
   }
 
+  @Get('find-all-by-business')
+  @Auth(ValidRoles.administrator, ValidRoles.ceo)
+  findAllByBusiness(
+    @GetUser() user: User
+  ) {
+    return this.usersService.findAllByBusiness(user);
+  }
+
   @Get('check-auth-status')
-  @Auth( ValidRoles.administrador, ValidRoles.cajero )
+  @Auth(ValidRoles.administrator, ValidRoles.ceo, ValidRoles.assistant)
   checkAuthStatus(
     @GetUser() user: User,
   ) {
@@ -39,29 +47,40 @@ export class UsersController {
   }
 
   @Get(':id')
-  @Auth( ValidRoles.administrador )
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.usersService.findOne(+id);
+  @Auth(ValidRoles.administrator, ValidRoles.ceo)
+  findOne(
+    @Param('id', ParseIntPipe) id: number, 
+    @GetUser() user: User
+  ) {
+    return this.usersService.findOne(+id, user);
   }
 
   @Patch(':id')
-  @Auth( ValidRoles.administrador )
-  update(@Param('id', ParseIntPipe) id: number, @Body() updateUserDto: UpdateUserDto) {
-    return this.usersService.update(+id, updateUserDto);
+  @Auth(ValidRoles.administrator, ValidRoles.ceo)
+  update(
+    @Param('id', ParseIntPipe) id: number, 
+    @Body() updateUserDto: UpdateUserDto,
+    @GetUser() user: User
+  ) {
+    return this.usersService.update(+id, updateUserDto, user);
   }
 
   @Patch('changue-password/:id')
-  @Auth( ValidRoles.administrador )
+  @Auth(ValidRoles.administrator, ValidRoles.ceo)
   changePassword(
     @Param('id', ParseIntPipe ) id: number,
     @Body() changuePasswordDto: ChangePasswordDto,
+    @GetUser() user: User
   ) {
-    return this.usersService.changePassword( +id, changuePasswordDto );
+    return this.usersService.changePassword(+id, changuePasswordDto, user);
   }
 
   @Delete(':id')
-  @Auth( ValidRoles.administrador )
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.usersService.remove(+id);
+  @Auth(ValidRoles.administrator, ValidRoles.ceo)
+  remove(
+    @Param('id', ParseIntPipe) id: number,
+    @GetUser() user: User
+  ) {
+    return this.usersService.remove(+id, user);
   }
 }

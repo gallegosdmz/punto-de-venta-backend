@@ -4,24 +4,27 @@ import { UpdateCategoryDto } from './dto/update-category.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Category } from './entities/category.entity';
 import { Repository } from 'typeorm';
-import { CustomValidations } from 'src/utils/validations';
+import { CustomValidator } from 'src/utils/validations';
 import { handleDBErrors } from 'src/utils/errors';
+import { User } from 'src/users/entities/user.entity';
 
 @Injectable()
 export class CategoriesService {
   constructor(
     @InjectRepository( Category )
     private readonly categoryRepository: Repository<Category>,
-    private readonly customValidations: CustomValidations,
-  ) {
+    private readonly customValidator: CustomValidator,
+  ) {}
 
-  }
-
-  async create(createCategoryDto: CreateCategoryDto) {
-    await this.customValidations.verifyNameExist( Category, createCategoryDto.name );
+  async create(createCategoryDto: CreateCategoryDto, user: User) {
+    await this.customValidator.verifyNameExist( Category, createCategoryDto.name );
+    const business = await this.customValidator.verifyOwnerBusiness(user.business.id, user);
 
     try {
-      const category = this.categoryRepository.create( createCategoryDto );
+      const category = this.categoryRepository.create({
+        ...createCategoryDto,
+        business,
+      });
       await this.categoryRepository.save( category );
 
       return category;
@@ -39,6 +42,7 @@ export class CategoriesService {
         },
         relations: {
           products: true,
+          business: true,
         },
       });
 
@@ -49,7 +53,28 @@ export class CategoriesService {
     }
   }
 
-  async findOne(id: number) {
+  async findAllByBusiness(user: User) {
+    const business = await this.customValidator.verifyOwnerBusiness(user.business.id, user);
+
+    try {
+      const categories = await this.categoryRepository.find({
+        where: {
+          isDeleted: false,
+          business,
+        },
+        relations: {
+          products: true,
+        },
+      });
+
+      return categories;
+
+    } catch (error) {
+      handleDBErrors(error, 'findAllByBysiness - categories');
+    }
+  }
+
+  async findOne(id: number, user: User) {
     const category = await this.categoryRepository.findOne({
       where: {
         id,
@@ -57,30 +82,35 @@ export class CategoriesService {
       },
       relations: {
         products: true,
+        business: true,
       },
     });
     if ( !category ) throw new NotFoundException(`Category with id: ${ id } not found`);
+    await this.customValidator.verifyOwnerBusiness(category.business.id, user);
 
     return category;
   }
 
-  async update(id: number, updateCategoryDto: UpdateCategoryDto) {
-    const category = await this.findOne( id );
-    await this.customValidations.verifyNameRepeat( Category, id, updateCategoryDto.name! );
+  async update(id: number, updateCategoryDto: UpdateCategoryDto, user: User) {
+    const category = await this.findOne(id, user);
+    await this.customValidator.verifyNameRepeat( Category, id, updateCategoryDto.name! );
 
     try {
-      Object.assign( category, updateCategoryDto );
-      await this.categoryRepository.save( category );
+      const updatedCategory = this.categoryRepository.create({
+        ...category,
+        ...updateCategoryDto,
+      })
+      await this.categoryRepository.save( updatedCategory );
       
-      return this.findOne( id );
+      return this.findOne(id, user);
 
     } catch ( error ) {
       handleDBErrors( error, 'update - categories' );
     }
   }
 
-  async remove(id: number) {
-    await this.findOne( id );
+  async remove(id: number, user: User) {
+    await this.findOne(id, user);
 
     try {
       await this.categoryRepository.update( id, { isDeleted: true } );

@@ -1,5 +1,5 @@
 import { Type } from "class-transformer";
-import { IsArray, IsDate, IsInt, IsNumber, ValidateNested } from "class-validator";
+import { IsArray, IsDate, IsInt, IsNumber, IsString, MaxLength, ValidateNested } from "class-validator";
 import { CreateSaleDetailDto } from "./create-sale-detail.dto";
 
 export class CreateSaleDto {
@@ -9,6 +9,14 @@ export class CreateSaleDto {
 
     @IsNumber()
     total: number;
+
+    @IsString()
+    @MaxLength(150)
+    client: string;
+
+    @IsString()
+    @MaxLength(150)
+    method: string;
 
     @IsArray()
     @ValidateNested({ each: true }) // Valida cada elemento del arreglo con la entidad indicada (SaleDetailDTO)

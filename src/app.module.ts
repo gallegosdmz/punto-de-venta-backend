@@ -7,18 +7,19 @@ import { CategoriesModule } from './categories/categories.module';
 import { ProductsModule } from './products/products.module';
 import { ExpensesModule } from './expenses/expenses.module';
 import { SalesModule } from './sales/sales.module';
+import { BusinessesModule } from './businesses/businesses.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot(),
 
     TypeOrmModule.forRoot({
-      type: 'mysql',
-      host: 'localhost',
-      port: 3306,
-      username: 'root',
-      password: '',
-      database: 'tenciaventasdb',
+      type: 'postgres',
+      host: process.env.DB_HOST,
+      port: +process.env.DB_PORT!,
+      database: process.env.DB_NAME,
+      username: process.env.DB_USERNAME,
+      password: process.env.DB_PASSWORD,
       autoLoadEntities: true,
       synchronize: true,
     }),
@@ -28,6 +29,7 @@ import { SalesModule } from './sales/sales.module';
     ProductsModule,
     ExpensesModule,
     SalesModule,
+    BusinessesModule,
   ],
 })
 export class AppModule {}

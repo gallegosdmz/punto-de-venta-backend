@@ -1,3 +1,4 @@
+import { Business } from "src/businesses/entities/business.entity";
 import { Category } from "src/categories/entities/category.entity";
 import { SaleDetail } from "src/sales/entities/sale-detail.entity";
 import { Supplier } from "src/suppliers/entities/supplier.entity";
@@ -38,6 +39,9 @@ export class Product {
 
     @OneToMany(() => SaleDetail, (saleDetail) => saleDetail.product)
     saleDetails: SaleDetail[];
+
+    @ManyToOne(() => Business)
+    business: Business;
 
     @Column({ default: false })
     isDeleted: boolean;

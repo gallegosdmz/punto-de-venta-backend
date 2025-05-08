@@ -11,42 +11,43 @@ export class SalesController {
   constructor(private readonly salesService: SalesService) {}
 
   @Post()
-  @Auth( ValidRoles.administrador, ValidRoles.cajero )
-  create(@Body() createSaleDto: CreateSaleDto, @GetUser() user: User) {
+  @Auth( ValidRoles.administrator, ValidRoles.ceo, ValidRoles.assistant )
+  create(
+    @Body() createSaleDto: CreateSaleDto,
+    @GetUser() user: User
+  ) {
     return this.salesService.create(createSaleDto, user);
   }
 
   @Get()
-  @Auth( ValidRoles.administrador, ValidRoles.cajero )
+  @Auth( ValidRoles.administrator )
   findAll() {
     return this.salesService.findAll();
   }
 
+  @Get('find-all-by-business')
+  @Auth(ValidRoles.administrator, ValidRoles.ceo)
+  findAllByBusiness(
+    @GetUser() user: User
+  ) {
+    return this.salesService.findAllByBusiness(user);
+  }
+
   @Get(':id')
-  @Auth( ValidRoles.administrador, ValidRoles.cajero )
-  findOne(@Param('id', ParseIntPipe ) id: number) {
-    return this.salesService.findOne(+id);
-  }
-
-  @Get('daily-report/:dateSale')
-  @Auth( ValidRoles.administrador )
-  generateDailyReport(
-    @Param('dateSale') dateSale: Date
+  @Auth( ValidRoles.administrator, ValidRoles.ceo )
+  findOne(
+    @Param('id', ParseIntPipe ) id: number,
+    @GetUser() user: User
   ) {
-    return this.salesService.generateDailyReport( dateSale );
-  }
-
-  @Get('monthly-report/:month')
-  @Auth( ValidRoles.administrador )
-  generateMonthlyReport(
-    @Param('month', ParseIntPipe ) month: number
-  ) {
-    return this.salesService.generateMonthlyReport( +month );
+    return this.salesService.findOne(+id, user);
   }
 
   @Delete(':id')
-  @Auth( ValidRoles.administrador )
-  remove(@Param('id', ParseIntPipe ) id: number) {
-    return this.salesService.remove(+id);
+  @Auth( ValidRoles.administrator, ValidRoles.ceo )
+  remove(
+    @Param('id', ParseIntPipe ) id: number,
+    @GetUser() user: User
+  ) {
+    return this.salesService.remove(+id, user);
   }
 }

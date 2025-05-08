@@ -13,41 +13,63 @@ export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
   @Post()
-  @Auth( ValidRoles.administrador )
-  create(@Body() createProductDto: CreateProductDto, @GetUser() user: User) {
+  @Auth(ValidRoles.administrator, ValidRoles.ceo, ValidRoles.assistant)
+  create(
+    @Body() createProductDto: CreateProductDto, 
+    @GetUser() user: User
+  ) {
     return this.productsService.create(createProductDto, user);
   }
 
   @Get()
-  @Auth( ValidRoles.administrador, ValidRoles.cajero )
+  @Auth(ValidRoles.administrator)
   findAll() {
     return this.productsService.findAll();
   }
 
+  @Get('find-all-by-business')
+  @Auth(ValidRoles.administrator, ValidRoles.ceo, ValidRoles.assistant)
+  findAllByBusiness(
+    @GetUser() user: User
+  ) {
+    return this.productsService.findAllByBusiness(user);
+  }
+
   @Get(':id')
-  @Auth( ValidRoles.administrador, ValidRoles.cajero )
-  findOne(@Param('id', ParseIntPipe ) id: number) {
-    return this.productsService.findOne(+id);
+  @Auth(ValidRoles.administrator, ValidRoles.ceo, ValidRoles.assistant)
+  findOne(
+    @Param('id', ParseIntPipe ) id: number,
+    @GetUser() user: User
+  ) {
+    return this.productsService.findOne(+id, user);
   }
 
   @Patch(':id')
-  @Auth( ValidRoles.administrador )
-  update(@Param('id', ParseIntPipe ) id: number, @Body() updateProductDto: UpdateProductDto) {
-    return this.productsService.update(+id, updateProductDto);
+  @Auth(ValidRoles.administrator, ValidRoles.ceo)
+  update(
+    @Param('id', ParseIntPipe ) id: number,
+    @Body() updateProductDto: UpdateProductDto,
+    @GetUser() user: User
+  ) {
+    return this.productsService.update(+id, updateProductDto, user);
   }
 
   @Patch('restock/:id')
-  @Auth( ValidRoles.administrador, ValidRoles.cajero )
+  @Auth(ValidRoles.administrator, ValidRoles.ceo, ValidRoles.assistant)
   restock(
     @Param('id', ParseIntPipe ) id: number,
-    @Body() restockProductDto: RestockProductDto
+    @Body() restockProductDto: RestockProductDto,
+    @GetUser() user: User
   ) {
-    return this.productsService.restock( +id, restockProductDto );
+    return this.productsService.restock(+id, restockProductDto, user);
   }
 
   @Delete(':id')
-  @Auth( ValidRoles.administrador )
-  remove(@Param('id', ParseIntPipe ) id: number) {
-    return this.productsService.remove(+id);
+  @Auth(ValidRoles.administrator, ValidRoles.ceo)
+  remove(
+    @Param('id', ParseIntPipe ) id: number,
+    @GetUser() user: User
+  ) {
+    return this.productsService.remove(+id, user);
   }
 }

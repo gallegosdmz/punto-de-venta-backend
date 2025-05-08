@@ -4,38 +4,61 @@ import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { Auth } from 'src/users/decorators/auth.decorator';
 import { ValidRoles } from 'src/users/interfaces/valid-roles';
+import { GetUser } from 'src/users/decorators/get-user.decorator';
+import { User } from 'src/users/entities/user.entity';
 
 @Controller('categories')
 export class CategoriesController {
   constructor(private readonly categoriesService: CategoriesService) {}
 
   @Post()
-  @Auth( ValidRoles.administrador )
-  create(@Body() createCategoryDto: CreateCategoryDto) {
-    return this.categoriesService.create(createCategoryDto);
+  @Auth(ValidRoles.administrator, ValidRoles.ceo, ValidRoles.assistant)
+  create(
+    @Body() createCategoryDto: CreateCategoryDto,
+    @GetUser() user: User
+  ) {
+    return this.categoriesService.create(createCategoryDto, user);
   }
 
   @Get()
-  @Auth( ValidRoles.administrador, ValidRoles.cajero )
+  @Auth( ValidRoles.administrator, ValidRoles.ceo, ValidRoles.assistant )
   findAll() {
     return this.categoriesService.findAll();
   }
 
+  @Get('find-all-by-business')
+  @Auth(ValidRoles.administrator, ValidRoles.ceo, ValidRoles.assistant)
+  findAllByBusiness(
+    @GetUser() user: User
+  ) {
+    return this.categoriesService.findAllByBusiness(user);
+  }
+
   @Get(':id')
-  @Auth( ValidRoles.administrador, ValidRoles.cajero )
-  findOne(@Param('id', ParseIntPipe ) id: number) {
-    return this.categoriesService.findOne(+id);
+  @Auth( ValidRoles.administrator, ValidRoles.ceo, ValidRoles.assistant )
+  findOne(
+    @Param('id', ParseIntPipe ) id: number,
+    @GetUser() user: User
+  ) {
+    return this.categoriesService.findOne(+id, user);
   }
 
   @Patch(':id')
-  @Auth( ValidRoles.administrador )
-  update(@Param('id', ParseIntPipe ) id: number, @Body() updateCategoryDto: UpdateCategoryDto) {
-    return this.categoriesService.update(+id, updateCategoryDto);
+  @Auth( ValidRoles.administrator, ValidRoles.ceo, ValidRoles.assistant )
+  update(
+    @Param('id', ParseIntPipe ) id: number, 
+    @Body() updateCategoryDto: UpdateCategoryDto,
+    @GetUser() user: User
+  ) {
+    return this.categoriesService.update(+id, updateCategoryDto, user);
   }
 
   @Delete(':id')
-  @Auth( ValidRoles.administrador )
-  remove(@Param('id', ParseIntPipe ) id: number) {
-    return this.categoriesService.remove(+id);
+  @Auth( ValidRoles.administrator, ValidRoles.ceo )
+  remove(
+    @Param('id', ParseIntPipe ) id: number, 
+    @GetUser() user: User
+  ) {
+    return this.categoriesService.remove(+id, user);
   }
 }

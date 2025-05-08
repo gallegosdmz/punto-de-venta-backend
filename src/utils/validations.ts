@@ -1,8 +1,10 @@
 import { DataSource, EntityTarget, Not } from "typeorm"
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
+import { User } from "src/users/entities/user.entity";
+import { Business } from "src/businesses/entities/business.entity";
 
 @Injectable()
-export class CustomValidations {
+export class CustomValidator {
     constructor(
         private readonly dataSource: DataSource,
     ) {}
@@ -95,7 +97,7 @@ export class CustomValidations {
         });
         if ( !entityDB ) throw new NotFoundException(`${ entity } with id: ${ id } not found`); 
 
-        // Buscar entity con el email que se quiere usar para editar
+        // Buscar entity con el name que se quiere usar para editar
         const entityWithName = await queryRunner.manager.findOne( entity, {
             where: {
                 name,
@@ -108,7 +110,7 @@ export class CustomValidations {
         await queryRunner.release();
     }
 
-    async verifyEntityExist( entity: EntityTarget<any>,  id: number ) {
+    async verifyEntityExist( entity: EntityTarget<any>, id: number ) {
         if ( !entity ) throw new NotFoundException(`Entity is required`);
         if ( !id ) throw new NotFoundException(`Id is required`);
 
@@ -124,5 +126,28 @@ export class CustomValidations {
         await queryRunner.release();
 
         return entityDB;
+    }
+
+    async verifyOwnerBusiness(business: number, user: User) {
+        if (!business) throw new NotFoundException('Business is required');
+        if (!user) throw new NotFoundException('User is required');
+
+        await this.verifyEntityExist(User, user.id);
+
+        const queryRunner = this.dataSource.createQueryRunner();
+        await queryRunner.connect();
+        await queryRunner.startTransaction();
+
+        const businessDB = await queryRunner.manager.findOne(Business, {
+            where: { id: business, isDeleted: false },
+        });
+        if (!businessDB) throw new NotFoundException(`Business with id: ${ business } not found`);
+        if (user.role === 'admin') return businessDB;
+
+        if (!businessDB.users.includes(user)) throw new UnauthorizedException(`User: ${ user.userName } is unauthorized for access to Business selected`);
+
+        await queryRunner.release();
+
+        return businessDB;
     }
 }

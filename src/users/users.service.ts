@@ -12,6 +12,7 @@ import { handleDBErrors } from 'src/utils/errors';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
 import { LoginUserDto } from './dto/login-user.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { CustomValidator } from 'src/utils/validations';
 
 @Injectable()
 export class UsersService {
@@ -20,15 +21,18 @@ export class UsersService {
     private readonly userRepository: Repository<User>,
 
     private readonly jwtService: JwtService,
+    private readonly customValidator: CustomValidator,
   ) {}
 
-  async create( createUserDto: CreateUserDto ) {
-    try {
-      const { password, ...userData } = createUserDto;
+  async create( createUserDto: CreateUserDto, user: User ) {
+    const { password, ...userData } = createUserDto;
+    const businessObj = await this.customValidator.verifyOwnerBusiness(user.business.id, user);
 
+    try {
       const user = this.userRepository.create({
         ...userData,
-        password: bcrypt.hashSync( password, 10 )
+        password: bcrypt.hashSync( password, 10 ),
+        business: businessObj
       });
       await this.userRepository.save( user );
 
@@ -75,8 +79,12 @@ export class UsersService {
         where: {
           isDeleted: false,
         },
+        relations: {
+          business: true,
+          products: true,
+          sales: true,
+        },
       });
-
 
       return users.map(({ password, ...user }) => user );
 
@@ -85,7 +93,28 @@ export class UsersService {
     }
   }
 
-  async findOne(id: number) {
+  async findAllByBusiness(user: User) {
+    const business = await this.customValidator.verifyOwnerBusiness(user.business.id, user);
+
+    try {
+      const users = await this.userRepository.find({
+        where: {
+          isDeleted: false,
+          business,
+        },
+        relations: {
+          sales: true,
+        },
+      });
+
+      return users.map(({ password, ...user }) => user );
+
+    } catch (error) {
+      handleDBErrors(error, 'findAllByBusiness - users');
+    }
+  }
+
+  async findOne(id: number, user: User) {
     const userDB = await this.userRepository.findOne({
       where: {
         id,
@@ -93,32 +122,37 @@ export class UsersService {
       },
     });
     if ( !userDB ) throw new NotFoundException(`User with id: ${ id } not found`);
+    await this.customValidator.verifyOwnerBusiness(userDB.business.id, user);
 
-    const { password, ...user } = userDB;
+    const { password, ...data } = userDB;
 
-    return user;
+    return data;
   }
 
-  async update(id: number, updateUserDto: UpdateUserDto) {
-    const user = await this.findOne( id );
+  async update(id: number, updateUserDto: UpdateUserDto, user: User) {
+    const userToUpdate = await this.findOne(id, user);
 
     try {
-      Object.assign( user, updateUserDto );
-      await this.userRepository.save( user );
+      Object.assign(userToUpdate, {...updateUserDto, business: userToUpdate.business});
+      await this.userRepository.save( userToUpdate );
 
-      return this.findOne( id );
+      return this.findOne(id, user);
 
     } catch ( error ) {
       handleDBErrors( error, 'update - users' );
     }
   }
 
-  async changePassword( id: number, changePasswordDto: ChangePasswordDto ) {
-    const user = await this.userRepository.findOne({
+  async changePassword( id: number, changePasswordDto: ChangePasswordDto, user: User ) {
+    const userObj = await this.userRepository.findOne({
       where: { id, isDeleted: false },
       select: { userName: true, password: true, id: true },
+      relations: {
+        business: true,
+      },
     });
-    if ( !user ) throw new NotFoundException(`User with id: ${ id } not found`);
+    if (!userObj) throw new NotFoundException(`User with id: ${ id } not found`);
+    await this.customValidator.verifyOwnerBusiness(userObj.business.id, user);
 
     try {
       const newPassword = bcrypt.hashSync( changePasswordDto.password, 10);
@@ -134,8 +168,8 @@ export class UsersService {
     }
   }
 
-  async remove(id: number) {
-    await this.findOne( id );
+  async remove(id: number, user: User) {
+    await this.findOne(id, user);
 
     try {
       await this.userRepository.update( id, { isDeleted: true } );

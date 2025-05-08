@@ -1,5 +1,6 @@
 import { Type } from "class-transformer";
 import { IsInt, IsNumber, IsString, MaxLength } from "class-validator";
+import { CreateExpenseDto } from "src/expenses/dto/create-expense.dto";
 
 export class CreateProductDto {
     @IsString()
@@ -29,4 +30,7 @@ export class CreateProductDto {
     @IsInt()
     @Type(() => Number)
     supplier: number;
+
+    @Type(() => CreateExpenseDto)
+    expense: CreateExpenseDto;
 }
