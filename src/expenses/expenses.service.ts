@@ -5,19 +5,19 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Expense } from './entities/expense.entity';
 import { Repository } from 'typeorm';
 import { handleDBErrors } from 'src/utils/errors';
-import { CustomValidator } from 'src/utils/validations';
 import { User } from 'src/users/entities/user.entity';
+import { BusinessValidator } from 'src/businesses/validators/business.validator';
 
 @Injectable()
 export class ExpensesService {
   constructor(
     @InjectRepository( Expense )
     private readonly expenseRepository: Repository<Expense>,
-    private readonly customValidator: CustomValidator,
+    private readonly businessValidator: BusinessValidator,
   ) {}
 
   async create(createExpenseDto: CreateExpenseDto, user: User) {
-    const business = await this.customValidator.verifyOwnerBusiness(user.business.id, user);
+    const business = await this.businessValidator.verifyOwnerBusiness(user.business.id, user);
     
     try {
       const expense = this.expenseRepository.create({ ...createExpenseDto, business });
@@ -47,7 +47,7 @@ export class ExpensesService {
   }
 
   async findAllByBusiness(user: User) {
-    const business = await this.customValidator.verifyOwnerBusiness(user.business.id, user);
+    const business = await this.businessValidator.verifyOwnerBusiness(user.business.id, user);
 
     try {
       const expenses = await this.expenseRepository.find({
@@ -69,7 +69,7 @@ export class ExpensesService {
       where: { id, isDeleted: false },
     });
     if (!expense) throw new NotFoundException(`Expense with id: ${ id } not found`);
-    await this.customValidator.verifyOwnerBusiness(expense.business.id, user);
+    await this.businessValidator.verifyOwnerBusiness(expense.business.id, user);
 
     return expense;
   }

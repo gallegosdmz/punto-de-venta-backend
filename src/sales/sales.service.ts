@@ -1,14 +1,13 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {  Injectable, NotFoundException } from '@nestjs/common';
 import { CreateSaleDto } from './dto/create-sale.dto';
-import { UpdateSaleDto } from './dto/update-sale.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Sale } from './entities/sale.entity';
-import { Between, DataSource, Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { SaleDetail } from './entities/sale-detail.entity';
 import { User } from 'src/users/entities/user.entity';
-import { CustomValidator } from 'src/utils/validations';
 import { handleDBErrors } from 'src/utils/errors';
 import { ProductsService } from 'src/products/products.service';
+import { BusinessValidator } from 'src/businesses/validators/business.validator';
 
 @Injectable()
 export class SalesService {
@@ -18,7 +17,7 @@ export class SalesService {
 
     @InjectRepository( SaleDetail )
     private readonly saleDetailRepository: Repository<SaleDetail>,
-    private readonly customValidator: CustomValidator,
+    private readonly businessValidator: BusinessValidator,
 
     private readonly productsService: ProductsService,
 
@@ -26,7 +25,7 @@ export class SalesService {
   ) {}
 
   async create(createSaleDto: CreateSaleDto, user: User) {
-    const business = await this.customValidator.verifyOwnerBusiness(user.business.id, user);
+    const business = await this.businessValidator.verifyOwnerBusiness(user.business.id, user);
 
     const { details, ...dataSale } = createSaleDto; 
 
@@ -94,7 +93,7 @@ export class SalesService {
   }
 
   async findAllByBusiness(user: User) {
-    const business = await this.customValidator.verifyOwnerBusiness(user.business.id, user);
+    const business = await this.businessValidator.verifyOwnerBusiness(user.business.id, user);
 
     try {
       const sales = await this.saleRepository.find({
@@ -131,7 +130,7 @@ export class SalesService {
       },
     });
     if ( !sale ) throw new NotFoundException(`Sale with id: ${ id } not found`);
-    await this.customValidator.verifyOwnerBusiness(sale.business.id, user);
+    await this.businessValidator.verifyOwnerBusiness(sale.business.id, user);
 
     return sale;
   }

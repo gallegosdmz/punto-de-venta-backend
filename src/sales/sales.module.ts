@@ -5,16 +5,17 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Sale } from './entities/sale.entity';
 import { UsersModule } from 'src/users/users.module';
 import { SaleDetail } from './entities/sale-detail.entity';
-import { CustomValidator } from 'src/utils/validations';
 import { ProductsModule } from 'src/products/products.module';
+import { BusinessesModule } from 'src/businesses/businesses.module';
 
 @Module({
   controllers: [SalesController],
-  providers: [SalesService, CustomValidator],
+  providers: [SalesService],
   imports: [
     TypeOrmModule.forFeature([ Sale, SaleDetail ]),
     UsersModule,
     ProductsModule,
+    BusinessesModule,
   ]
 })
 export class SalesModule {}

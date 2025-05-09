@@ -4,21 +4,21 @@ import { UpdateCategoryDto } from './dto/update-category.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Category } from './entities/category.entity';
 import { Repository } from 'typeorm';
-import { CustomValidator } from 'src/utils/validations';
 import { handleDBErrors } from 'src/utils/errors';
 import { User } from 'src/users/entities/user.entity';
+import { BusinessValidator } from 'src/businesses/validators/business.validator';
 
 @Injectable()
 export class CategoriesService {
   constructor(
     @InjectRepository( Category )
     private readonly categoryRepository: Repository<Category>,
-    private readonly customValidator: CustomValidator,
+    private readonly businessValidator: BusinessValidator,
   ) {}
 
   async create(createCategoryDto: CreateCategoryDto, user: User) {
-    await this.customValidator.verifyNameExist( Category, createCategoryDto.name );
-    const business = await this.customValidator.verifyOwnerBusiness(user.business.id, user);
+    await this.businessValidator.verifyFieldNotRepeated( Category, 'name', createCategoryDto.name );
+    const business = await this.businessValidator.verifyOwnerBusiness(user.business.id, user);
 
     try {
       const category = this.categoryRepository.create({
@@ -54,7 +54,7 @@ export class CategoriesService {
   }
 
   async findAllByBusiness(user: User) {
-    const business = await this.customValidator.verifyOwnerBusiness(user.business.id, user);
+    const business = await this.businessValidator.verifyOwnerBusiness(user.business.id, user);
 
     try {
       const categories = await this.categoryRepository.find({
@@ -86,14 +86,14 @@ export class CategoriesService {
       },
     });
     if ( !category ) throw new NotFoundException(`Category with id: ${ id } not found`);
-    await this.customValidator.verifyOwnerBusiness(category.business.id, user);
+    await this.businessValidator.verifyOwnerBusiness(category.business.id, user);
 
     return category;
   }
 
   async update(id: number, updateCategoryDto: UpdateCategoryDto, user: User) {
     const category = await this.findOne(id, user);
-    await this.customValidator.verifyNameRepeat( Category, id, updateCategoryDto.name! );
+    await this.businessValidator.verifyFieldNotRepeated( Category, 'name', updateCategoryDto.name, id );
 
     try {
       const updatedCategory = this.categoryRepository.create({

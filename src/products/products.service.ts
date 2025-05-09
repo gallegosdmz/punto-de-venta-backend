@@ -5,28 +5,27 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Product } from './entities/product.entity';
 import { Repository } from 'typeorm';
 import { handleDBErrors } from 'src/utils/errors';
-import { CustomValidator } from 'src/utils/validations';
 import { User } from 'src/users/entities/user.entity';
 import { RestockProductDto } from './dto/restock-product.dto';
 import { Category } from 'src/categories/entities/category.entity';
 import { Supplier } from 'src/suppliers/entities/supplier.entity';
 import { ExpensesService } from 'src/expenses/expenses.service';
-import { CreateExpenseDto } from 'src/expenses/dto/create-expense.dto';
+import { BusinessValidator } from 'src/businesses/validators/business.validator';
 
 @Injectable()
 export class ProductsService {
   constructor(
     @InjectRepository( Product )
     private readonly productRepository: Repository<Product>,
-    private readonly customValidator: CustomValidator,
+    private readonly businessValidator: BusinessValidator,
     private readonly expenseService: ExpensesService,
   ) {}
   
   async create(createProductDto: CreateProductDto, user: User) {
-    const category = await this.customValidator.verifyEntityExist( Category, createProductDto.category );
-    const supplier = await this.customValidator.verifyEntityExist( Supplier, createProductDto.supplier );
+    const category = await this.businessValidator.verifyEntityExist( Category, createProductDto.category );
+    const supplier = await this.businessValidator.verifyEntityExist( Supplier, createProductDto.supplier );
 
-    const business = await this.customValidator.verifyOwnerBusiness(user.business.id, user);
+    const business = await this.businessValidator.verifyOwnerBusiness(user.business.id, user);
 
     const {expense, ...createProductDetails} = createProductDto;
 
@@ -78,7 +77,7 @@ export class ProductsService {
   }
 
   async findAllByBusiness(user: User) {
-    const business = await this.customValidator.verifyOwnerBusiness(user.business.id, user);
+    const business = await this.businessValidator.verifyOwnerBusiness(user.business.id, user);
 
     try {
       const products = await this.productRepository.find({
@@ -114,7 +113,7 @@ export class ProductsService {
       },
     });
     if ( !product ) throw new NotFoundException(`Product with id: ${ id } not found`);
-    await this.customValidator.verifyOwnerBusiness(product.business.id, user)
+    await this.businessValidator.verifyOwnerBusiness(product.business.id, user)
 
     return product;
   }
@@ -122,8 +121,8 @@ export class ProductsService {
   async update(id: number, updateProductDto: UpdateProductDto, user: User) {
     const product = await this.findOne(id, user);
     
-    const category = await this.customValidator.verifyEntityExist( Category, updateProductDto.category! );
-    const supplier = await this.customValidator.verifyEntityExist( Supplier, updateProductDto.supplier! );
+    const category = await this.businessValidator.verifyEntityExist( Category, updateProductDto.category! );
+    const supplier = await this.businessValidator.verifyEntityExist( Supplier, updateProductDto.supplier! );
 
     const { stock, ...res } = updateProductDto;
 
@@ -148,7 +147,7 @@ export class ProductsService {
   }
 
   async restock(id: number, restockProductDto: RestockProductDto, user: User) {
-    const business = await this.customValidator.verifyOwnerBusiness(user.business.id, user);
+    const business = await this.businessValidator.verifyOwnerBusiness(user.business.id, user);
     const product = await this.findOne(id, user);
     const restock = Number( product.stock + restockProductDto.restock );
 

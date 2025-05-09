@@ -4,14 +4,15 @@ import { SuppliersController } from './suppliers.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Supplier } from './entities/supplier.entity';
 import { UsersModule } from 'src/users/users.module';
-import { CustomValidator } from 'src/utils/validations';
+import { BusinessesModule } from 'src/businesses/businesses.module';
 
 @Module({
   controllers: [SuppliersController],
-  providers: [SuppliersService, CustomValidator],
+  providers: [SuppliersService],
   imports: [
     TypeOrmModule.forFeature([ Supplier ]),
     UsersModule,
+    BusinessesModule,
   ]
 })
 export class SuppliersModule {}

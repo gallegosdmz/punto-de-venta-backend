@@ -4,14 +4,15 @@ import { ExpensesController } from './expenses.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Expense } from './entities/expense.entity';
 import { UsersModule } from 'src/users/users.module';
-import { CustomValidator } from 'src/utils/validations';
+import { BusinessesModule } from 'src/businesses/businesses.module';
 
 @Module({
   controllers: [ExpensesController],
-  providers: [ExpensesService, CustomValidator],
+  providers: [ExpensesService],
   imports: [
     TypeOrmModule.forFeature([ Expense ]),
     UsersModule,
+    BusinessesModule,
   ],
   exports: [ExpensesService]
 })

@@ -5,22 +5,22 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Supplier } from './entities/supplier.entity';
 import { Repository } from 'typeorm';
 import { handleDBErrors } from 'src/utils/errors';
-import { CustomValidator } from 'src/utils/validations';
 import { User } from 'src/users/entities/user.entity';
+import { BusinessValidator } from 'src/businesses/validators/business.validator';
 
 @Injectable()
 export class SuppliersService {
   constructor(
     @InjectRepository( Supplier )
     private readonly supplierRepository: Repository<Supplier>,
-    private readonly customValidator: CustomValidator,
+    private readonly businessValidator: BusinessValidator,
   ) {}
 
   async create(createSupplierDto: CreateSupplierDto, user: User) {
-    await this.customValidator.verifyNameExist( Supplier, createSupplierDto.name );
-    await this.customValidator.verifyEmailExist( Supplier, createSupplierDto.email );
+    await this.businessValidator.verifyFieldNotRepeated( Supplier, 'name', createSupplierDto.name );
+    await this.businessValidator.verifyFieldNotRepeated( Supplier, 'email', createSupplierDto.email );
 
-    const business = await this.customValidator.verifyOwnerBusiness(user.business.id, user);
+    const business = await this.businessValidator.verifyOwnerBusiness(user.business.id, user);
 
     try {
       const supplier = this.supplierRepository.create({
@@ -56,7 +56,7 @@ export class SuppliersService {
   }
 
   async findAllByBusiness(user: User) {
-    const business = await this.customValidator.verifyOwnerBusiness(user.business.id, user);
+    const business = await this.businessValidator.verifyOwnerBusiness(user.business.id, user);
 
     try {
       const suppliers = await this.supplierRepository.find({
@@ -84,15 +84,15 @@ export class SuppliersService {
       },
     });
     if ( !supplier ) throw new NotFoundException(`Supplier with id: ${ id } not found`);
-    await this.customValidator.verifyOwnerBusiness(supplier.business.id, user);
+    await this.businessValidator.verifyOwnerBusiness(supplier.business.id, user);
 
     return supplier;
   }
 
   async update(id: number, updateSupplierDto: UpdateSupplierDto, user: User) {
     const supplier = await this.findOne(id, user);
-    await this.customValidator.verifyEmailRepeat( Supplier, id, updateSupplierDto.email! );
-    await this.customValidator.verifyNameRepeat( Supplier, id, updateSupplierDto.name! );
+    await this.businessValidator.verifyFieldNotRepeated( Supplier, 'name', updateSupplierDto.name, id );
+    await this.businessValidator.verifyFieldNotRepeated( Supplier, 'email', updateSupplierDto.email, id );
 
     try {
       const updatedSupplier = this.supplierRepository.create({
