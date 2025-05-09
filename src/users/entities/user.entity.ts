@@ -29,6 +29,9 @@ export class User {
     @ManyToOne(() => Business, (business) => business.users)
     business: Business;
 
+    @Column({ type: 'timestamp', nullable: true })
+    lastLogin: Date;
+
     @Column({ default: false })
     isDeleted: boolean;
 }
