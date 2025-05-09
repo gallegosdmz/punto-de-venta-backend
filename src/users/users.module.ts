@@ -1,19 +1,31 @@
-import { Module } from '@nestjs/common';
-import { UsersService } from './users.service';
-import { UsersController } from './users.controller';
+import { forwardRef, Module } from '@nestjs/common';
+import { UsersController, AdmininistratorsController, AuthController } from './controllers/';
+import { AdmininistratorsService, AuthService, UsersService } from './services/';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
 import { JwtModule } from '@nestjs/jwt';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { PassportModule } from '@nestjs/passport';
-import { CustomValidator } from 'src/utils/validations';
+import { CoreModule } from 'src/core/core.module';
+import { BusinessesModule } from 'src/businesses/businesses.module';
 
 @Module({
-  controllers: [UsersController],
-  providers: [UsersService, JwtStrategy, CustomValidator],
+  controllers: [
+    AdmininistratorsController,
+    AuthController,
+    UsersController,
+  ],
+  providers: [
+    AdmininistratorsService,
+    AuthService,
+    UsersService,
+    JwtStrategy,
+  ],
   imports: [
     ConfigModule,
+    CoreModule,
+    forwardRef(() => BusinessesModule),
 
     TypeOrmModule.forFeature([ User ]),
 

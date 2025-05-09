@@ -9,11 +9,11 @@ export function IsRole( validationOptions?: ValidationOptions ) {
             options: validationOptions,
             validator: {
                 validate( value: any, args: ValidationArguments ) {
-                    const roles = ['admin', 'cajero'];
+                    const roles = ['admin', 'ceo', 'assistant'];
                     return typeof value === 'string' && roles.includes( value );
                 },
                 defaultMessage( args: ValidationArguments ) {
-                    return `${ args.property } must be one of the following roles: ADMINSTRADOR, CAJERO`;
+                    return `${ args.property } must be one of the following roles: ADMINSTRADOR, CEO, ASISTENTE`;
                 }
             }
         });

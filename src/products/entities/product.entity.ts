@@ -22,7 +22,7 @@ export class Product {
     @Column('decimal', { precision: 10, scale: 2 })
     purchasePrice: number;
 
-    @Column('text')
+    @Column('text', { nullable: true })
     barCode: string;
 
     @Column('int')

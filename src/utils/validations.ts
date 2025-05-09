@@ -132,7 +132,7 @@ export class CustomValidator {
         if (!business) throw new NotFoundException('Business is required');
         if (!user) throw new NotFoundException('User is required');
 
-        await this.verifyEntityExist(User, user.id);
+        const userObj = await this.verifyEntityExist(User, user.id);
 
         const queryRunner = this.dataSource.createQueryRunner();
         await queryRunner.connect();
@@ -142,12 +142,27 @@ export class CustomValidator {
             where: { id: business, isDeleted: false },
         });
         if (!businessDB) throw new NotFoundException(`Business with id: ${ business } not found`);
-        if (user.role === 'admin') return businessDB;
+        if (userObj.role === 'admin') return businessDB;
 
-        if (!businessDB.users.includes(user)) throw new UnauthorizedException(`User: ${ user.userName } is unauthorized for access to Business selected`);
+        if (!businessDB.users.includes(userObj)) throw new UnauthorizedException(`User: ${ userObj.userName } is unauthorized for access to Business selected`);
 
         await queryRunner.release();
 
         return businessDB;
+    }
+
+    async verifyUserNameExist(userName: string) {
+        if (!userName) throw new NotFoundException('User Name is required');
+
+        const queryRunner = this.dataSource.createQueryRunner();
+        await queryRunner.connect();
+        await queryRunner.startTransaction();
+
+        const user = await queryRunner.manager.findOne(User, {
+            where: { userName, isDeleted: false },
+        });
+        if (user) throw new BadRequestException(`${ userName } is busy`);
+
+        await queryRunner.release();
     }
 }

@@ -1,5 +1,6 @@
-import { IsString, MaxLength } from "class-validator";
+import { IsInt, IsOptional, IsString, MaxLength } from "class-validator";
 import { IsPassword, IsRole } from "../decorators";
+import { Type } from "class-transformer";
 
 export class CreateUserDto {
     @IsString()
@@ -17,4 +18,9 @@ export class CreateUserDto {
     @IsString()
     @IsRole()
     role: string;
+
+    @IsInt()
+    @IsOptional()
+    @Type(() => Number)
+    businessId?: number;
 }
